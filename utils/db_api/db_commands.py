@@ -1,0 +1,115 @@
+from datetime import datetime
+from utils.db_api.db import db
+
+
+def is_register(uid):
+    if db.masters.count_documents({'uid': uid}) > 0:
+        return True
+    return False
+
+
+def add_master(uid, name):
+    data = {'uid': uid, 'name': name, 'status': 0}
+    db.masters.insert_one(data)
+
+
+def get_masters():
+    masters = []
+    for i in db.masters.find({'status': 1}):
+        masters.append(i)
+    return masters
+
+
+def current_status():
+    if db.settings.count_documents({'name': 'settings'}) > 0:
+        r = db.settings.find_one({'name': 'settings'})
+        return r['status']
+    else:
+        db.settings.insert_one({'name': 'settings', 'status': False})
+        return False
+
+
+def set_status(status):
+    db.settings.update_one({'name': 'settings'}, {'$set': {'status': status}}, upsert=True)
+
+
+def aprove_master(uid):
+    db.masters.update_one({'uid': uid, 'status': 0}, {'$set': {'status': 1}})
+
+
+def add_ticket(data):
+    id = db.tickets.count_documents({}) + 1
+    data['id'] = id
+    db.tickets.insert_one(data)
+
+    return id
+
+
+def is_aviable(uid, master_id):
+    if db.tickets.count_documents({'id': uid, 'status': 0}) > 0:
+        db.tickets.update_one({'id': uid}, {'$set': {'master': get_master_by_id(master_id), 'accept_date': datetime.now().strftime("%d.%m.%Y %X"), 'status': 1}}, upsert=True)
+        return db.tickets.find_one({'id': uid})
+    return False
+
+
+def decline(uid):
+    if db.tickets.count_documents({'id': uid}) > 0:
+        db.tickets.update_one({'id': uid}, {'$set': {'master': '-', 'accept_date': '-', 'status':0}}, upsert=True)
+        return db.tickets.find_one({'id': uid})
+    return False
+
+
+def confirm(uid):
+    if db.tickets.count_documents({'id': uid}) > 0:
+        db.tickets.update_one({'id': uid}, {'$set': {'status': 2, 'confirm_date': datetime.now().strftime("%d.%m.%Y %X")}}, upsert=True)
+        return db.tickets.find_one({'id': uid})
+    return False
+
+
+def get_master_by_id(uid):
+    f = db.masters.find_one({'uid': uid})
+    return f['name']
+
+
+def get_master_by_name(name):
+    f = db.masters.find_one({"name": name})
+
+    return f
+
+
+def get_tickets(id=None):
+    if id is None:
+        data = []
+        for i in db.tickets.find({}):
+            data.append(i)
+    else:
+        data=[]
+        for i in db.tickets.find({'master': get_master_by_id(id), 'status': 1}):
+            data.append(i)
+    return data
+
+
+def get_actual_tickets():
+    data = []
+    for i in db.tickets.find({'status': 0}):
+        data.append(i)
+    return data
+
+
+def delete_master(uid):
+    db.masters.delete_one({'uid': uid})
+
+
+def archive(uid):
+    if db.tickets.count_documents({'id': uid}) > 0:
+        db.tickets.update_one({'id': uid}, {'$set': {'status': 5}}, upsert=True)
+        return True
+    return False
+
+
+def get_ticket_by_id(uid):
+    return db.tickets.find_one({'id': uid})
+
+
+def update_ticket(uid, status):
+    db.tickets.update_one({'id': uid}, {'$set': {'status': 0, 'confirm_date': '-', 'master': '-', 'accept_date': '-'}})
