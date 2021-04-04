@@ -57,9 +57,11 @@ async def asd(message: types.Message):
 @dp.message_handler(Text(startswith='АРХИВ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     uid = int(message.text.split(' ')[2])
+
     if archive(uid):
-        sp.update_table()
         await message.answer(f'Заявка {uid} помещена в архив')
+
+    sp.update_table(get_ticket_by_id(uid))
 
 
 @dp.message_handler(Text(startswith='МАСТЕРАМ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
@@ -89,7 +91,7 @@ async def asd(message: types.Message):
     uid = int(message.text.split(' ')[3])
     update_ticket(uid, 0)
 
-    sp.update_table()
+    sp.update_table(get_ticket_by_id(uid))
     data = get_ticket_by_id(uid)
 
     text = f"""Заявка {uid}
