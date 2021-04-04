@@ -1,11 +1,8 @@
 import logging
-
-import httplib2
-import apiclient.discovery
-from utils.db_api.db import db
-from oauth2client.service_account import ServiceAccountCredentials
-
 import gspread
+
+from utils.db_api.db import db
+
 
 from utils.db_api.db_commands import get_master_by_name
 
@@ -24,55 +21,76 @@ class Spreadsheets:
         self.sheet = self.gc.open_by_key('1ovwFjKZgGGsUj3FWMhM8D1YNWvfdPahZPBldAX_NnJk')
         self.worksheet = self.sheet.sheet1
 
-        logger.debug('CONNECTING TO SSP END')
+        logger.debug('CONNECTING TO SSP ENDED')
 
         self.status_to_str = {
             0: "Поиск",
             1: "Назначен мастер",
-            2: "ВЫполнен",
+            2: "Выполнен",
             3: "Не договорились",
             4: "Висяк",
             5: "Архив"
         }
 
-        self.update_table()
-        logger.debug('UPDATED SSP END')
+        self.status_to_color = {
+            0:,
+            1:,
+            2:,
+            3:,
+            4:,
+            5:,
+        }
 
-    def update_table(self):
-        # TODO update to 2 to delete existing rows.
-        last_row = 6
-
-        # TODO optimize!!! search not for all tickets, but for exact codes!
+        logger.debug('UPDATED SSP STARTED')
         for ticket in db.tickets.find():
-            range_ = f"A{last_row}:N{last_row}"
+            self.update_table(ticket)
 
-            master_f = get_master_by_name(ticket['master'])
-            master_uid = master_f['uid'] if master_f is not None else "Не назначен"
+        logger.debug('UPDATED SSP ENDED')
 
-            status = self.status_to_str.get(ticket['status'], ticket['status'])
+    # TODO optimize!!! search not for all tickets, but for exact codes!
+    def update_table(self, ticket):
+        tid = ticket['id']
+        target_range = self.get_target_range(tid)
+        new_data = self.get_data(ticket)
 
-            logger.debug(f"\n\n{ticket}\n\n")
+        logger.debug(f"\n\n{ticket}\n\n")
 
-            # TODO status color
-            # TODO formatting
-            data = [
-                [
-                     str(ticket['id']),
-                     str(ticket['create_date']),
-                     str(ticket['confirm_date']),
-                     str(ticket['accept_date']),
-                     str(ticket['address']),
-                     str(ticket['number']),
-                     str(ticket['name']),
-                     str(ticket['category']),
-                     str(ticket['desc']),
-                     str(ticket['price']),
-                     str(ticket['master']),
-                     str(master_uid),
-                     str(status),
-                ]
+        # TODO status color
+        # TODO formatting
+        self.worksheet.update(target_range, new_data)
+
+    def get_data(self, ticket):
+        master_f = get_master_by_name(ticket['master'])
+        master_uid = master_f['uid'] if master_f is not None else "Не назначен"
+        status = self.status_to_str.get(ticket['status'], ticket['status'])
+
+        data = [
+            [
+                str(ticket['id']),
+                str(ticket['create_date']),
+                str(ticket['confirm_date']),
+                str(ticket['accept_date']),
+                str(ticket['address']),
+                str(ticket['number']),
+                str(ticket['name']),
+                str(ticket['category']),
+                str(ticket['desc']),
+                str(ticket['price']),
+                str(ticket['master']),
+                str(master_uid),
+                str(status),
             ]
+        ]
 
-            self.worksheet.update(range_, data)
+        return data
 
-            last_row += 1
+    def get_target_range(self, tid):
+        try:
+            target_row = self.worksheet.find(query=str(tid), in_column=1).row
+
+        except (gspread.exceptions.CellNotFound, StopIteration):
+            target_row = len(self.worksheet.col_values(1)) + 1
+
+        range_ = f"A{target_row}:N{target_row}"
+
+        return range_
