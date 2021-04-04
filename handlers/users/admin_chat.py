@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.builtin import CommandStart, Text
 from aiogram.types import ReplyKeyboardRemove
 
-from sheets.connet import sp
+from sheets.connect import sp
 from handlers.users.master import mailing
 from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb
 from loader import dp

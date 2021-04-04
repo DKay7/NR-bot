@@ -30,9 +30,10 @@ class Spreadsheets:
         self.status_to_str = {
             0: "Поиск",
             1: "Назначен мастер",
-            2: "Не договорились",
-            3: "Висяк",
-            4: "Архив"
+            2: "ВЫполнен",
+            3: "Не договорились",
+            4: "Висяк",
+            5: "Архив"
         }
 
         self.update_table()
@@ -51,11 +52,13 @@ class Spreadsheets:
 
             status = self.status_to_str.get(ticket['status'], ticket['status'])
 
+            logger.debug(f  "\n\n {ticket} \n\n")
+
             # TODO status color
             # TODO formatting
             data = [
                 [
-                     str(ticket['_id']),
+                     str(ticket['id']),
                      str(ticket['create_date']),
                      str(ticket['confirm_date']),
                      str(ticket['accept_date']),

@@ -28,6 +28,7 @@ async def mailing(text, bot, id):
 
     markup = get_ticket_kb(id)
     for i in list:
+        print(f'UID: {i["uid"]}')
         await bot.send_message(i['uid'], text, reply_markup=markup)
 
 
@@ -97,12 +98,13 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     id = int(call.data.split('_')[1])
 
     confirm(id)
-    sp.update_table()
 
     await call.message.answer(f'Заявка {id} закрыта! Спасибо за сотрудничество!!!')
     await call.message.bot.send_message(ADMIN_CHAT, f"Заявка {id} закрыта мастером <a href='tg://user?id={call.message.chat.id}'>{get_master_by_id(call.message.chat.id)}</a>\n"
                                                     f'Сумма: {data["price"]}')
     await call.message.delete()
+
+    sp.update_table()
 
 
 @dp.callback_query_handler(Text(startswith='cancel_'), chat_type=types.ChatType.PRIVATE,
@@ -115,6 +117,7 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await Master.get_reason2.set()
 
     decline(id)
+
     sp.update_table()
 
 
@@ -200,20 +203,20 @@ async def bot_start(message: types.Message, state: FSMContext):
     data = await state.get_data()
     id = add_ticket(data)
 
-    sp.update_table()
-
     text = f"""Заявка {id}
-Адрес: {data['address']}
-Категория: {data['category']}
-Дата выполнения: {data['date']}
-Стоимость: {data['price']}
-Описание:
-{data['desc']}"""
+            Адрес: {data['address']}
+            Категория: {data['category']}
+            Дата выполнения: {data['date']}
+            Стоимость: {data['price']}
+            Описание:
+            {data['desc']}"""
 
     await message.answer('Заявка успешно создана',
                          reply_markup=get_admin_kb())
     await Admin.default.set()
     await mailing(text, message.bot, id)
+
+    sp.update_table()
 
 
 @dp.callback_query_handler(Text(startswith='ticket_ac_'), chat_type=types.ChatType.PRIVATE,
@@ -232,6 +235,8 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
         await call.answer('Данную заявку уже взял другой мастер', show_alert=True)
         await call.message.delete()
 
+    sp.update_table()
+
 
 @dp.callback_query_handler(Text(startswith='ticket_dc_'), chat_type=types.ChatType.PRIVATE,
                            state='*')
@@ -246,9 +251,10 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     id = int(call.data.split('_')[1])
     await state.update_data(id=id)
     decline(id)
-    sp.update_table()
     await call.message.answer('Укажите причину по которой не получилось договориться')
     await Master.get_reason.set()
+
+    sp.update_table()
 
 
 @dp.callback_query_handler(Text(startswith='good_'), chat_type=types.ChatType.PRIVATE,
