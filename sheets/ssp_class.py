@@ -33,12 +33,12 @@ class Spreadsheets:
         }
 
         self.status_to_color = {
-            0:,
-            1:,
-            2:,
-            3:,
-            4:,
-            5:,
+            0: (0, 0, 0),
+            1: (56, 118, 29),
+            2: (230, 145, 56),
+            3: (166, 77, 121),
+            4: (109, 158, 235),
+            5: (234, 67, 53),
         }
 
         logger.debug('UPDATED SSP STARTED')
@@ -50,7 +50,7 @@ class Spreadsheets:
     # TODO optimize!!! search not for all tickets, but for exact codes!
     def update_table(self, ticket):
         tid = ticket['id']
-        target_range = self.get_target_range(tid)
+        target_range, target_row = self.get_target_range(tid)
         new_data = self.get_data(ticket)
 
         logger.debug(f"\n\n{ticket}\n\n")
@@ -58,6 +58,7 @@ class Spreadsheets:
         # TODO status color
         # TODO formatting
         self.worksheet.update(target_range, new_data)
+        self.format_worksheet(ticket, target_row)
 
     def get_data(self, ticket):
         master_f = get_master_by_name(ticket['master'])
@@ -93,4 +94,14 @@ class Spreadsheets:
 
         range_ = f"A{target_row}:N{target_row}"
 
-        return range_
+        return range_, target_row
+
+    def format_worksheet(self, ticket, target_row):
+        color = self.status_to_color[ticket['status']]
+
+        self.worksheet.format(f"N{target_row}",
+                              {"backgroundColor": {
+                                  "red": color[0],
+                                  "green": color[1],
+                                  "blue": color[2]
+                                }})
