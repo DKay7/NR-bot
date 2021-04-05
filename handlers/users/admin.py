@@ -63,22 +63,25 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Admin.get_description)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(desc=message.text, status=0, create_date=datetime.now().strftime("%d.%m.%Y %X"),
-                            confirm_date='-', accept_date='-', master='-')
+                            confirm_date='-', accept_date='-', master='-', final_price='-')
     data = await state.get_data()
     id = add_ticket(data)
 
-    text = f"""Заявка {id}
-            Адрес: {data['address']}
-            Категория: {data['category']}
-            Дата выполнения: {data['date']}
-            Стоимость: {data['price']}
-            Описание:
-            {data['desc']}"""
+    text = f"Заявка {id}\n"\
+           f"Адрес: {data['address']}\n"\
+           f"Категория: {data['category']}\n"\
+           f"Дата выполнения: {data['date']}\n"\
+           f"Стоимость: {data['price']}\n"\
+           f"Описание:\n"\
+           f"{data['desc']}"
 
     await message.answer('Заявка успешно создана',
                          reply_markup=get_admin_kb())
     await Admin.default.set()
-    await mailing(text, message.bot, id)
+
+    # TODO don't forget to uncomment
+    # that was comment for tests.
+    # await mailing(text, message.bot, id)
 
     sp.update_table(get_ticket_by_id(id))
 

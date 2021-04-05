@@ -8,6 +8,7 @@ class Master(StatesGroup):
     get_reason = State()
     get_reason2 = State()
     get_dogov = State()
+    get_final_price = State()
 
 
 class Admin(StatesGroup):
@@ -19,3 +20,4 @@ class Admin(StatesGroup):
     get_date = State()
     get_price = State()
     get_description = State()
+    get_final_price = State()

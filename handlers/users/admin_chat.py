@@ -42,8 +42,8 @@ async def bot_start(message: types.Message, state: FSMContext):
         await message.answer('Прием мастеров открыт')
 
 
-@dp.message_handler(Text(startswith='УДАЛИТЬ МАСТЕРА'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP],
-                    state='*')
+@dp.message_handler(Text(startswith='УДАЛИТЬ МАСТЕРА'),
+                    chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     master = int(message.text.split(' ')[2])
     delete_master(master)
@@ -54,7 +54,8 @@ async def asd(message: types.Message):
         pass
 
 
-@dp.message_handler(Text(startswith='АРХИВ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
+@dp.message_handler(Text(startswith='АРХИВ'),
+                    chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     uid = int(message.text.split(' ')[2])
 
@@ -64,14 +65,16 @@ async def asd(message: types.Message):
     sp.update_table(get_ticket_by_id(uid))
 
 
-@dp.message_handler(Text(startswith='МАСТЕРАМ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
+@dp.message_handler(Text(startswith='МАСТЕРАМ'),
+                    chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     text = message.text.replace('МАСТЕРАМ', '')
     await mailing_text(text, message.bot)
     await message.answer('Рассылка успешно выполнена')
 
 
-@dp.message_handler(Text(startswith='РАССЫЛКА'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
+@dp.message_handler(Text(startswith='РАССЫЛКА'),
+                    chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     uid = int(message.text.split(' ')[1])
     data = get_ticket_by_id(uid)
@@ -86,7 +89,8 @@ async def asd(message: types.Message):
     await message.answer('Рассылка успешно выполнена')
 
 
-@dp.message_handler(Text(startswith='ВЕРНУТЬ И РАЗОСЛАТЬ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
+@dp.message_handler(Text(startswith='ВЕРНУТЬ И РАЗОСЛАТЬ'),
+                    chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     uid = int(message.text.split(' ')[3])
     update_ticket(uid, 0)

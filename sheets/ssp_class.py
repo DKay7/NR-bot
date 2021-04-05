@@ -78,6 +78,7 @@ class Spreadsheets:
                 str(ticket['category']),
                 str(ticket['desc']),
                 str(ticket['price']),
+                str(ticket['final_price']),
                 str(ticket['master']),
                 str(master_uid),
                 str(status),
@@ -93,7 +94,7 @@ class Spreadsheets:
         except (gspread.exceptions.CellNotFound, StopIteration):
             target_row = len(self.worksheet.col_values(1)) + 1
 
-        range_ = f"A{target_row}:N{target_row}"
+        range_ = f"A{target_row}:O{target_row}"
 
         return range_, target_row
 

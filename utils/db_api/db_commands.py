@@ -47,21 +47,30 @@ def add_ticket(data):
 
 def is_aviable(uid, master_id):
     if db.tickets.count_documents({'id': uid, 'status': 0}) > 0:
-        db.tickets.update_one({'id': uid}, {'$set': {'master': get_master_by_id(master_id), 'accept_date': datetime.now().strftime("%d.%m.%Y %X"), 'status': 1}}, upsert=True)
+        db.tickets.update_one({'id': uid}, {'$set':
+                                                {'master': get_master_by_id(master_id),
+                                                 'accept_date': datetime.now().strftime("%d.%m.%Y %X"),
+                                                 'status': 1,}}, upsert=True)
         return db.tickets.find_one({'id': uid})
     return False
 
 
 def decline(uid):
     if db.tickets.count_documents({'id': uid}) > 0:
-        db.tickets.update_one({'id': uid}, {'$set': {'master': '-', 'accept_date': '-', 'status':0}}, upsert=True)
+        db.tickets.update_one({'id': uid}, {'$set': {'master': '-', 'accept_date': '-',
+                                                     'status': 0,}}, upsert=True)
         return db.tickets.find_one({'id': uid})
     return False
 
 
-def confirm(uid):
+def confirm(uid, price=0):
     if db.tickets.count_documents({'id': uid}) > 0:
-        db.tickets.update_one({'id': uid}, {'$set': {'status': 2, 'confirm_date': datetime.now().strftime("%d.%m.%Y %X")}}, upsert=True)
+        db.tickets.update_one({'id': uid},
+                              {'$set': {'status': 2,
+                                        'confirm_date': datetime.now().strftime("%d.%m.%Y %X"),
+                                        'final_price': price}},
+                              upsert=True)
+
         return db.tickets.find_one({'id': uid})
     return False
 
@@ -112,4 +121,8 @@ def get_ticket_by_id(uid):
 
 
 def update_ticket(uid, status):
-    db.tickets.update_one({'id': uid}, {'$set': {'status': 0, 'confirm_date': '-', 'master': '-', 'accept_date': '-'}})
+    db.tickets.update_one({'id': uid},
+                          {'$set': {'status': 0, 'confirm_date': '-',
+                                    'master': '-',
+                                    'accept_date': '-',
+                                    'final_price': '-'}})
