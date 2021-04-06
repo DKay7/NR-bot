@@ -81,10 +81,9 @@ async def bot_start(message: types.Message, state: FSMContext):
 
     # TODO don't forget to uncomment
     # that was comment for tests.
-    # await mailing(text, message.bot, id)
+    await mailing(text, message.bot, id)
 
-    sp.update_table(get_ticket_by_id(id))
-
+    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
 
 
 
