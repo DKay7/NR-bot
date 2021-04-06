@@ -8,7 +8,7 @@ from handlers.users.master import mailing
 from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb
 from loader import dp
 from states.states import Master
-from utils.db_api.db_commands import is_register, approve_master, current_status, set_status, delete_master, archive, \
+from utils.db_api.db_commands import is_registered_master, approve_master, current_status, set_status, delete_master, archive, \
     get_masters, get_ticket_by_id, update_ticket, get_master_by_uid
 
 
@@ -30,9 +30,11 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(Text(startswith='decline'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP],
                            state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
-    id = int(call.data.split('_')[1])
-    await call.message.bot.send_message(id, 'Вам было отказано', reply_markup=ReplyKeyboardRemove())
+    uid = int(call.data.split('_')[1])
+    await call.message.bot.send_message(uid, 'Вам было отказано', reply_markup=ReplyKeyboardRemove())
     await call.message.edit_text(call.message.text + '\n\nОТКАЗАНО', reply_markup=None)
+    delete_master(uid)
+    await Master.not_master.set()
 
 
 @dp.message_handler(Text(equals='СТАТУС'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
@@ -50,6 +52,11 @@ async def bot_start(message: types.Message, state: FSMContext):
 async def asd(message: types.Message):
     master_uid = int(message.text.split(' ')[2])
     master = get_master_by_uid(master_uid)
+
+    if master is None:
+        await message.answer(f'Мастера с id {master_uid} не существует')
+        return
+
     delete_master(master_uid)
     try:
         await message.bot.send_message(master_uid, 'Вы были удалены из списка мастеров', reply_markup=ReplyKeyboardRemove())

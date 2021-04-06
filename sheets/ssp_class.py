@@ -48,7 +48,7 @@ class Spreadsheets:
         for ticket in db.tickets.find():
             self.update_table(ticket=ticket, table='tickets')
 
-        for master in db.masters.find():
+        for master in db.masters.find({'status': 1}):
             self.update_table(master=master, table='masters')
 
         logger.info('SSP UPDATE ENDED')
@@ -83,15 +83,17 @@ class Spreadsheets:
             self.worksheet.update(target_range, new_data)
 
     def delete_master(self, master):
+        assert master is not None
+
         self.worksheet = self.sheet.get_worksheet(1)
 
         mid = master['id']
         target_row = self.worksheet.find(query=str(mid), in_column=1).row
-        target_range = f"A{target_row}:F{target_row}"
+        target_range = f"A{target_row}:G{target_row}"
 
         # TODO make it the right way
-        # F - A = 6
-        new_data = [[''] * 6]
+        # G - A = 6
+        new_data = [[''] * 7]
         self.worksheet.update(target_range, new_data)
 
     def get_data(self, ticket=None, master=None, for_='ticket'):
@@ -135,6 +137,7 @@ class Spreadsheets:
                     str(master['name']),
                     str(master['phone']),
                     str(master['username']),
+                    str(master['uid']),
                     str(master['address'])
                 ]
             ]
@@ -155,7 +158,7 @@ class Spreadsheets:
             return range_, target_row
 
         elif for_ == 'masters':
-            range_ = f"A{target_row}:F{target_row}"
+            range_ = f"A{target_row}:G{target_row}"
             return range_, target_row
 
     def format_tickets_worksheet(self, ticket, target_row, color=None):

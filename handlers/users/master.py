@@ -13,7 +13,7 @@ from keyboards.inline.inline_keyboards import get_solution_kb, get_ticket_kb, ge
     get_ticket_master_kb
 from loader import dp
 from states.states import Master, Admin
-from utils.db_api.db_commands import is_register, current_status, add_master, add_ticket, get_masters, update_ticket_if_available, \
+from utils.db_api.db_commands import is_registered_master, current_status, add_master, add_ticket, get_masters, update_ticket_if_available, \
     get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id
 
 
@@ -35,7 +35,7 @@ async def mailing(text, bot, id):
 @dp.message_handler(CommandStart(), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(message: types.Message, state: FSMContext):
     if not await is_admin(message.chat.id, message.bot):
-        if not is_register(message.chat.id):
+        if not is_registered_master(message.chat.id):
             await message.answer(f"Вы не являетесь мастером, но вы можете подать заявку",
                                  reply_markup=get_not_master_kb())
             await Master.not_master.set()
@@ -100,9 +100,8 @@ async def bot_start(message: types.Message, state: FSMContext):
            f"Контактный телефон: {data['phone']}"
 
     await message.bot.send_message(ADMIN_CHAT, text, reply_markup=get_solution_kb(message.chat.id))
-
     add_master(message.chat.id, data)
-    await Master.master.set()
+    await Master.not_master.set()
 
 
 @dp.message_handler(Text(equals='Мои заявки'), chat_type=types.ChatType.PRIVATE, state=Master.master)

@@ -2,8 +2,8 @@ from datetime import datetime
 from utils.db_api.db import db
 
 
-def is_register(uid):
-    if db.masters.count_documents({'uid': uid}) > 0:
+def is_registered_master(uid):
+    if db.masters.count_documents({'uid': uid, 'status': 1}) > 0:
         return True
     return False
 

@@ -79,8 +79,6 @@ async def bot_start(message: types.Message, state: FSMContext):
                          reply_markup=get_admin_kb())
     await Admin.default.set()
 
-    # TODO don't forget to uncomment
-    # that was comment for tests.
     await mailing(text, message.bot, id)
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
