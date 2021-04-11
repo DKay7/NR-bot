@@ -6,6 +6,7 @@ class Master(StatesGroup):
     master = State()
     get_name = State()
     get_speciality = State()
+    get_additional_spec = State()
     get_phone = State()
     get_address = State()
 

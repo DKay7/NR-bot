@@ -122,6 +122,7 @@ class Spreadsheets:
                     str(ticket['master']),
                     str(master_uid),
                     str(status),
+                    str(ticket['denied'])
                 ]
             ]
 
@@ -133,12 +134,14 @@ class Spreadsheets:
             data = [
                 [
                     str(master['id']),
+                    str(master['start_date']),
                     str(master['speciality']),
+                    str(master['additional_spec']),
                     str(master['name']),
                     str(master['phone']),
                     str(master['username']),
                     str(master['uid']),
-                    str(master['address'])
+                    str(master['address']),
                 ]
             ]
 
@@ -158,7 +161,7 @@ class Spreadsheets:
             return range_, target_row
 
         elif for_ == 'masters':
-            range_ = f"A{target_row}:G{target_row}"
+            range_ = f"A{target_row}:I{target_row}"
             return range_, target_row
 
     def format_tickets_worksheet(self, ticket, target_row, color=None):

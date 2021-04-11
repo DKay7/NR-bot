@@ -63,7 +63,8 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Admin.get_description)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(desc=message.text, status=0, create_date=datetime.now().strftime("%d.%m.%Y %X"),
-                            confirm_date='-', accept_date='-', master='-', final_price='-')
+                            confirm_date='-', accept_date='-', master='-',
+                            final_price='-', denied='-')
     data = await state.get_data()
     id = add_ticket(data)
 

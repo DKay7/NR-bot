@@ -47,10 +47,10 @@ async def bot_start(message: types.Message, state: FSMContext):
         await message.answer('Прием мастеров открыт')
 
 
-@dp.message_handler(Text(startswith='УДАЛИТЬ МАСТЕРА'),
+@dp.message_handler(Text(startswith='УВОЛЕН'),
                     chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
-    master_uid = int(message.text.split(' ')[2])
+    master_uid = int(message.text.split(' ')[1])
     master = get_master_by_uid(master_uid)
 
     if master is None:

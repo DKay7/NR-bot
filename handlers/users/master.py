@@ -14,7 +14,7 @@ from keyboards.inline.inline_keyboards import get_solution_kb, get_ticket_kb, ge
 from loader import dp
 from states.states import Master, Admin
 from utils.db_api.db_commands import is_registered_master, current_status, add_master, add_ticket, get_masters, update_ticket_if_available, \
-    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id
+    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id, get_master_by_uid
 
 
 async def is_admin(uid, bot):
@@ -73,6 +73,13 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_speciality)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(speciality=message.text)
+    await message.answer('Введите дополнительные специализации')
+    await Master.get_additional_spec.set()
+
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_additional_spec)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(additional_spec=message.text)
     await message.answer('Введите адрес проживания (метро)')
     await Master.get_address.set()
 
@@ -96,6 +103,7 @@ async def bot_start(message: types.Message, state: FSMContext):
            f"<a href='tg://user?id={message.chat.id}'>" \
            f"{data['name']}</a>\n" \
            f"Специализация: {data['speciality']}\n" \
+           f"Доп. специализация: {data['additional_spec']}\n" \
            f"Адрес проживания: {data['address']}\n" \
            f"Контактный телефон: {data['phone']}"
 
@@ -147,9 +155,9 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer(f'Укажите причину отмены заявки')
     await Master.get_reason2.set()
 
-    decline(id)
+    decline(id, get_master_name_by_id(call.message.chat.id))
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
+    sp.update_table(table='masters', master=get_master_by_uid(call.message.chat.id))
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_reason2)
 async def bot_start(message: types.Message, state: FSMContext):
@@ -184,7 +192,7 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
         await call.message.delete()
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
+    sp.update_table(table='masters', master=get_master_by_uid(call.message.chat.id))
 
 @dp.callback_query_handler(Text(startswith='ticket_dc_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
@@ -196,12 +204,13 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup('')
     id = int(call.data.split('_')[1])
     await state.update_data(id=id)
-    decline(id)
+
+    decline(id, get_master_name_by_id(call.message.chat.id))
     await call.message.answer('Укажите причину по которой не получилось договориться')
     await Master.get_reason.set()
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
+    sp.update_table(table='masters', master=get_master_by_uid(call.message.chat.id))
 
 @dp.callback_query_handler(Text(startswith='good_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
@@ -266,6 +275,7 @@ async def bot_start(message: types.Message, state: FSMContext):
                                                f"Итоговая сумма: {data['final_price']}")
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
+    sp.update_table(table='masters', master=get_master_by_uid(message.chat.id))
     await Master.master.set()
 
 

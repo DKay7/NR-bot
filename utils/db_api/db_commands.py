@@ -12,6 +12,7 @@ def add_master(uid, data):
     id = db.masters.count_documents({}) + 1
     data['id'] = id
     data['status'] = 0
+    data['start_date'] = '-'
     db.masters.insert_one(data)
 
 
@@ -36,7 +37,13 @@ def set_status(status):
 
 
 def approve_master(uid):
-    db.masters.update_one({'uid': uid, 'status': 0}, {'$set': {'status': 1}})
+    db.masters.update_one({'uid': uid, 'status': 0},
+                          {'$set':
+                               {
+                                'status': 1,
+                                'start_date': datetime.now().strftime("%d.%m.%Y %X"),
+                                }
+                           })
 
 
 def add_ticket(data):
@@ -53,14 +60,16 @@ def update_ticket_if_available(uid, master_id):
                                                 {'master': get_master_name_by_id(master_id),
                                                  'accept_date': datetime.now().strftime("%d.%m.%Y %X"),
                                                  'status': 1,}}, upsert=True)
+
         return db.tickets.find_one({'id': uid})
     return False
 
 
-def decline(uid):
+def decline(uid, master_name):
     if db.tickets.count_documents({'id': uid}) > 0:
         db.tickets.update_one({'id': uid}, {'$set': {'master': '-', 'accept_date': '-',
-                                                     'status': 0,}}, upsert=True)
+                                                     'status': 0, 'denied': master_name
+                                                     }}, upsert=True)
         return db.tickets.find_one({'id': uid})
     return False
 
@@ -127,7 +136,8 @@ def get_master_by_uid(uid):
 
 def update_ticket(tid, status):
     db.tickets.update_one({'id': tid},
-                          {'$set': {'status': 0, 'confirm_date': '-',
+                          {'$set': {'status': 0,
+                                    'confirm_date': '-',
                                     'master': '-',
                                     'accept_date': '-',
                                     'final_price': '-'}})
