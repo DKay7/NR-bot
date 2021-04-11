@@ -2,14 +2,16 @@ from datetime import datetime
 from utils.db_api.db import db
 
 
-def is_register(uid):
-    if db.masters.count_documents({'uid': uid}) > 0:
+def is_registered_master(uid):
+    if db.masters.count_documents({'uid': uid, 'status': 1}) > 0:
         return True
     return False
 
 
-def add_master(uid, name):
-    data = {'uid': uid, 'name': name, 'status': 0}
+def add_master(uid, data):
+    id = db.masters.count_documents({}) + 1
+    data['id'] = id
+    data['status'] = 0
     db.masters.insert_one(data)
 
 
@@ -33,7 +35,7 @@ def set_status(status):
     db.settings.update_one({'name': 'settings'}, {'$set': {'status': status}}, upsert=True)
 
 
-def aprove_master(uid):
+def approve_master(uid):
     db.masters.update_one({'uid': uid, 'status': 0}, {'$set': {'status': 1}})
 
 
@@ -45,10 +47,10 @@ def add_ticket(data):
     return id
 
 
-def is_aviable(uid, master_id):
+def update_ticket_if_available(uid, master_id):
     if db.tickets.count_documents({'id': uid, 'status': 0}) > 0:
         db.tickets.update_one({'id': uid}, {'$set':
-                                                {'master': get_master_by_id(master_id),
+                                                {'master': get_master_name_by_id(master_id),
                                                  'accept_date': datetime.now().strftime("%d.%m.%Y %X"),
                                                  'status': 1,}}, upsert=True)
         return db.tickets.find_one({'id': uid})
@@ -75,14 +77,13 @@ def confirm(uid, price=0):
     return False
 
 
-def get_master_by_id(uid):
+def get_master_name_by_id(uid):
     f = db.masters.find_one({'uid': uid})
-    return f['name']
+    return f["name"]
 
 
 def get_master_by_name(name):
     f = db.masters.find_one({"name": name})
-
     return f
 
 
@@ -93,7 +94,7 @@ def get_tickets(id=None):
             data.append(i)
     else:
         data=[]
-        for i in db.tickets.find({'master': get_master_by_id(id), 'status': 1}):
+        for i in db.tickets.find({'master': get_master_name_by_id(id), 'status': 1}):
             data.append(i)
     return data
 
@@ -116,12 +117,16 @@ def archive(uid):
     return False
 
 
-def get_ticket_by_id(uid):
-    return db.tickets.find_one({'id': uid})
+def get_ticket_by_id(tid):
+    return db.tickets.find_one({'id': tid})
 
 
-def update_ticket(uid, status):
-    db.tickets.update_one({'id': uid},
+def get_master_by_uid(uid):
+    return db.masters.find_one({'uid': uid})
+
+
+def update_ticket(tid, status):
+    db.tickets.update_one({'id': tid},
                           {'$set': {'status': 0, 'confirm_date': '-',
                                     'master': '-',
                                     'accept_date': '-',

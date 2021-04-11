@@ -5,6 +5,10 @@ class Master(StatesGroup):
     not_master = State()
     master = State()
     get_name = State()
+    get_speciality = State()
+    get_phone = State()
+    get_address = State()
+
     get_reason = State()
     get_reason2 = State()
     get_dogov = State()
