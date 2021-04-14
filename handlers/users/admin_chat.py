@@ -5,7 +5,7 @@ from aiogram.types import ReplyKeyboardRemove
 
 from sheets.connect import sp
 from handlers.users.master import mailing
-from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb
+from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb, to_main_menu_master_kb
 from loader import dp
 from states.states import Master
 from utils.db_api.db_commands import is_registered_master, approve_master, current_status, set_status, delete_master, archive, \
@@ -22,7 +22,7 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.bot.send_message(uid,
                                         'Вы приняты, в данном чате вы будете получать уведомления о новых заявках и '
                                         'управлять ими',
-                                        reply_markup=get_master_kb())
+                                        reply_markup=to_main_menu_master_kb())
 
     sp.update_table(table='masters', master=get_master_by_uid(uid))
 
@@ -31,7 +31,7 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
                            state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
     uid = int(call.data.split('_')[1])
-    await call.message.bot.send_message(uid, 'Вам было отказано', reply_markup=ReplyKeyboardRemove())
+    await call.message.bot.send_message(uid, 'Вам было отказано', reply_markup=to_main_menu_master_kb())
     await call.message.edit_text(call.message.text + '\n\nОТКАЗАНО', reply_markup=None)
     delete_master(uid)
     await Master.not_master.set()
