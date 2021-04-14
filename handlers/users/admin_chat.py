@@ -47,10 +47,10 @@ async def bot_start(message: types.Message, state: FSMContext):
         await message.answer('Прием мастеров открыт')
 
 
-@dp.message_handler(Text(startswith='УВОЛЕН'),
+@dp.message_handler(Text(startswith='УДАЛИТЬ МАСТЕРА'),
                     chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
-    master_uid = int(message.text.split(' ')[1])
+    master_uid = int(message.text.split(' ')[2])
     master = get_master_by_uid(master_uid)
 
     if master is None:
@@ -75,7 +75,7 @@ async def asd(message: types.Message):
     if archive(uid):
         await message.answer(f'Заявка {uid} помещена в архив')
 
-    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
+    sp.update_table(ticket=get_ticket_by_id(uid), table='tickets')
 
 
 @dp.message_handler(Text(startswith='МАСТЕРАМ'),
@@ -108,7 +108,7 @@ async def asd(message: types.Message):
     uid = int(message.text.split(' ')[3])
     update_ticket(uid, 0)
 
-    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
+    sp.update_table(ticket=get_ticket_by_id(uid), table='tickets')
     data = get_ticket_by_id(uid)
 
     text = f"""Заявка {uid}

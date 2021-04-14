@@ -157,7 +157,6 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
 
     decline(id, get_master_name_by_id(call.message.chat.id))
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-    sp.update_table(table='masters', master=get_master_by_uid(call.message.chat.id))
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_reason2)
 async def bot_start(message: types.Message, state: FSMContext):
@@ -192,7 +191,6 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
         await call.message.delete()
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-    sp.update_table(table='masters', master=get_master_by_uid(call.message.chat.id))
 
 @dp.callback_query_handler(Text(startswith='ticket_dc_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
@@ -210,7 +208,6 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await Master.get_reason.set()
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-    sp.update_table(table='masters', master=get_master_by_uid(call.message.chat.id))
 
 @dp.callback_query_handler(Text(startswith='good_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
@@ -258,24 +255,37 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer(f'Введите сумму, которую вы получили за заказ')
     await Master.get_final_price.set()
 
-
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_final_price)
 async def bot_start(message: types.Message, state: FSMContext):
-    data = await state.update_data(final_price=message.text)
+    await state.update_data(final_price=message.text)
+    await message.answer(f'Какая работа была проделана?')
+    await Master.get_final_work.set()
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_final_work)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(final_work=message.text)
+    await message.answer(f'Клиент доволен?')
+    await Master.is_client_happy.set()
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.is_client_happy)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(is_client_happy=message.text)
     data = await state.get_data()
+
     id_ = data['id']
 
-    confirm(id_, price=data['final_price'])
+    confirm(id_, data)
 
     await message.answer(f'Заявка {id_} закрыта! Спасибо за сотрудничество!!!')
     await message.bot.send_message(ADMIN_CHAT, f"Заявка {id_} закрыта мастером "
                                                f"<a href='tg://user?id={message.chat.id}'>"
                                                f"{get_master_name_by_id(message.chat.id)}</a>\n"
                                                f"Изначальная сумма: {data['price']}\n"
-                                               f"Итоговая сумма: {data['final_price']}")
+                                               f"Итоговая сумма: {data['final_price']}\n"
+                                               f"Проделанная работа: {data['final_work']}\n"
+                                               f"Клиент доволен: {data['is_client_happy']}")
 
-    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-    sp.update_table(table='masters', master=get_master_by_uid(message.chat.id))
+    sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
     await Master.master.set()
 
 

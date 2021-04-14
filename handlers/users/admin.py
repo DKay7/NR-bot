@@ -64,7 +64,9 @@ async def bot_start(message: types.Message, state: FSMContext):
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(desc=message.text, status=0, create_date=datetime.now().strftime("%d.%m.%Y %X"),
                             confirm_date='-', accept_date='-', master='-',
-                            final_price='-', denied='-')
+                            final_work='-', is_client_happy='-', final_price='-',
+                            denied_0='-', denied_1='-', denied_2='-', den_index=0)
+
     data = await state.get_data()
     id = add_ticket(data)
 

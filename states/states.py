@@ -14,6 +14,8 @@ class Master(StatesGroup):
     get_reason2 = State()
     get_dogov = State()
     get_final_price = State()
+    get_final_work = State()
+    is_client_happy = State()
 
 
 class Admin(StatesGroup):

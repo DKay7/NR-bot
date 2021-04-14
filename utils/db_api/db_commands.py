@@ -67,19 +67,24 @@ def update_ticket_if_available(uid, master_id):
 
 def decline(uid, master_name):
     if db.tickets.count_documents({'id': uid}) > 0:
+        den_index = db.tickets.find_one({'id': uid})['den_index']
         db.tickets.update_one({'id': uid}, {'$set': {'master': '-', 'accept_date': '-',
-                                                     'status': 0, 'denied': master_name
+                                                     'status': 0, f'denied_{den_index % 3}': master_name
                                                      }}, upsert=True)
+        db.tickets.update_one({'id': uid}, {'$inc': {'den_index': 1}})
         return db.tickets.find_one({'id': uid})
     return False
 
 
-def confirm(uid, price=0):
+def confirm(uid, data):
     if db.tickets.count_documents({'id': uid}) > 0:
         db.tickets.update_one({'id': uid},
                               {'$set': {'status': 2,
                                         'confirm_date': datetime.now().strftime("%d.%m.%Y %X"),
-                                        'final_price': price}},
+                                        'final_price': data['final_price'],
+                                        'final_work': data['final_work'],
+                                        'is_client_happy': data['is_client_happy'],
+                                        }},
                               upsert=True)
 
         return db.tickets.find_one({'id': uid})

@@ -92,8 +92,8 @@ class Spreadsheets:
         target_range = f"A{target_row}:G{target_row}"
 
         # TODO make it the right way
-        # G - A = 6
-        new_data = [[''] * 7]
+        # L - A = 12
+        new_data = [[''] * 12]
         self.worksheet.update(target_range, new_data)
 
     def get_data(self, ticket=None, master=None, for_='ticket'):
@@ -122,7 +122,11 @@ class Spreadsheets:
                     str(ticket['master']),
                     str(master_uid),
                     str(status),
-                    str(ticket['denied'])
+                    str(ticket['final_work']),
+                    str(ticket['is_client_happy']),
+                    str(ticket['denied_0']),
+                    str(ticket['denied_1']),
+                    str(ticket['denied_2']),
                 ]
             ]
 
@@ -157,7 +161,8 @@ class Spreadsheets:
             target_row = len(self.worksheet.col_values(1)) + 1
 
         if for_ == 'tickets':
-            range_ = f"A{target_row}:O{target_row}"
+            range_ = f"A{target_row}:S" \
+                     f"{target_row}"
             return range_, target_row
 
         elif for_ == 'masters':
