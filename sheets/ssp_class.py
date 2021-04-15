@@ -25,19 +25,19 @@ class Spreadsheets:
         # Status code - Str
         self.status_to_str = {
             0: "Поиск",
-            1: "Назначен мастер",
+            1: "В работе",
             2: "Выполнен",
-            3: "Не договорились",
-            4: "Висяк",
+            3: "Мастер договаривается с клиентом",
+            4: "Не договорились",
             5: "Архив"
         }
 
         # Status code - Color (R, G, B)
         self.status_to_color = {
-            0: (0, 0, 0),
+            0: (204, 0, 0),
             1: (51, 51, 255),
             2: (50, 205, 50),
-            3: (62, 69, 50),
+            3: (153, 0, 255),
             4: (255, 244, 79),
             5: (11, 218, 81),
         }
@@ -172,7 +172,7 @@ class Spreadsheets:
     def format_tickets_worksheet(self, ticket, target_row, color=None):
 
         if color is None:
-            color = self.status_to_color[ticket['status']]
+            color = self.status_to_color.get(ticket['status'], (255, 255, 255))
 
             self.worksheet.format(f"N{target_row}",
                                   {"backgroundColor": {

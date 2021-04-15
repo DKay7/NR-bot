@@ -59,7 +59,7 @@ def update_ticket_if_available(uid, master_id):
         db.tickets.update_one({'id': uid}, {'$set':
                                                 {'master': get_master_name_by_id(master_id),
                                                  'accept_date': datetime.now().strftime("%d.%m.%Y %X"),
-                                                 'status': 1,}}, upsert=True)
+                                                 'status': 3}}, upsert=True)
 
         return db.tickets.find_one({'id': uid})
     return False
@@ -108,7 +108,7 @@ def get_tickets(id=None):
             data.append(i)
     else:
         data=[]
-        for i in db.tickets.find({'master': get_master_name_by_id(id), 'status': 1}):
+        for i in db.tickets.find({'master': get_master_name_by_id(id), 'status': {"$in":[1, 3]}}):
             data.append(i)
     return data
 
@@ -146,3 +146,7 @@ def update_ticket(tid, status):
                                     'master': '-',
                                     'accept_date': '-',
                                     'final_price': '-'}})
+
+
+def update_ticket_status(tid, new_status):
+    db.tickets.update_one({'id': tid}, {'$set': {'status': new_status}})

@@ -15,7 +15,7 @@ from keyboards.inline.inline_keyboards import get_solution_kb, get_ticket_kb, ge
 from loader import dp
 from states.states import Master, Admin
 from utils.db_api.db_commands import is_registered_master, current_status, add_master, add_ticket, get_masters, update_ticket_if_available, \
-    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id, get_master_by_uid
+    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id, get_master_by_uid, update_ticket_status
 
 
 async def is_admin(uid, bot):
@@ -126,43 +126,58 @@ async def bot_start(message: types.Message, state: FSMContext):
 async def bot_start(message: types.Message, state: FSMContext):
 
     tickets = get_tickets(message.chat.id)
-    for data in tickets:
-        text = f"Заявка {data['id']}\n\n" \
-               f"Адрес: {data['address']}\n" \
-               f"Категория: {data['category']}\n" \
-               f"Дата выполнения: {data['date']}\n" \
-               f"Стоимость: {data['price']}\n" \
-               f"Номер клиента: {data['number']}\n" \
-               f"Имя: {data['name']}\n" \
-               f"Описание:\n" \
-               f"{data['desc']}"
+    if not tickets:
+        await message.answer("На данный момент у вас нет открытых заявок.")
 
-        await state.update_data(price=data['price'])
-        await message.answer(text, reply_markup=get_master_ticket_kb(data['id']))
+    else:
+        for data in tickets:
+            if int(data['status']) == 3:
+                await message.answer(
+                    f'Вам необходимо связаться с клиентом и договориться обо всём\n\n'
+                    f'Номер клиента: {data["number"]}\nИмя: {data["name"]}',
+                    reply_markup=get_client_kb(data['id']))
+            else:
+                text = f"Заявка {data['id']}\n\n" \
+                       f"Адрес: {data['address']}\n" \
+                       f"Категория: {data['category']}\n" \
+                       f"Дата выполнения: {data['date']}\n" \
+                       f"Стоимость: {data['price']}\n" \
+                       f"Номер клиента: {data['number']}\n" \
+                       f"Имя: {data['name']}\n" \
+                       f"Описание:\n" \
+                       f"{data['desc']}"
+
+                await state.update_data(price=data['price'])
+                await message.answer(text, reply_markup=get_master_ticket_kb(data['id']))
 
 
 @dp.message_handler(Text(equals='Актуальные заявки'), chat_type=types.ChatType.PRIVATE, state=Master.master)
 async def bot_start(message: types.Message, state: FSMContext):
     tickets = get_actual_tickets()
-    for data in tickets:
-        text = f"Заявка {data['id']}\n\n" \
-               f"Адрес: {data['address']}\n" \
-               f"Категория: {data['category']}\n" \
-               f"Дата выполнения: {data['date']}\n" \
-               f"Стоимость: {data['price']}\n" \
-               f"Номер клиента: {data['number']}\n" \
-               f"Имя: {data['name']}\n" \
-               f"Описание:\n" \
-               f"{data['desc']}"
 
-        await message.answer(text, reply_markup=get_ticket_master_kb(data['id']))
+    if not tickets:
+        await message.answer("На данный момент нет открытых заявок.")
+
+    else:
+        for data in tickets:
+            text = f"Заявка {data['id']}\n\n" \
+                   f"Адрес: {data['address']}\n" \
+                   f"Категория: {data['category']}\n" \
+                   f"Дата выполнения: {data['date']}\n" \
+                   f"Стоимость: {data['price']}\n" \
+                   f"Номер клиента: {data['number']}\n" \
+                   f"Имя: {data['name']}\n" \
+                   f"Описание:\n" \
+                   f"{data['desc']}"
+
+            await message.answer(text, reply_markup=get_ticket_master_kb(data['id']))
 
 
 @dp.callback_query_handler(Text(startswith='cancel_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup('')
-    data = await state.get_data()
     id = int(call.data.split('_')[1])
+    await state.update_data(id=id)
     await call.message.answer(f'Укажите причину отмены заявки')
     await Master.get_reason2.set()
 
@@ -243,6 +258,8 @@ async def bot_start(message: types.Message, state: FSMContext):
                          'После выполнения работы не забудьте отметить заказ '
                          'выполненным', reply_markup=get_master_kb())
 
+    update_ticket_status(data['id'], 1)
+    sp.update_table(ticket=get_ticket_by_id(data['id']), table='tickets')
     await Master.master.set()
 
 
