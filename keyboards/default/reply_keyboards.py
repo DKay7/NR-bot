@@ -13,6 +13,10 @@ def get_master_kb():
     markup.insert('Актуальные заявки')
     return markup
 
+def to_main_menu_master_kb():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.insert('Перейти в главное меню')
+    return markup
 
 def get_admin_kb():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)

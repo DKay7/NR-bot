@@ -6,6 +6,7 @@ class Master(StatesGroup):
     master = State()
     get_name = State()
     get_speciality = State()
+    get_additional_spec = State()
     get_phone = State()
     get_address = State()
 
@@ -13,6 +14,8 @@ class Master(StatesGroup):
     get_reason2 = State()
     get_dogov = State()
     get_final_price = State()
+    get_final_work = State()
+    is_client_happy = State()
 
 
 class Admin(StatesGroup):

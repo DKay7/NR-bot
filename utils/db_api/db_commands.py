@@ -12,6 +12,7 @@ def add_master(uid, data):
     id = db.masters.count_documents({}) + 1
     data['id'] = id
     data['status'] = 0
+    data['start_date'] = '-'
     db.masters.insert_one(data)
 
 
@@ -36,7 +37,13 @@ def set_status(status):
 
 
 def approve_master(uid):
-    db.masters.update_one({'uid': uid, 'status': 0}, {'$set': {'status': 1}})
+    db.masters.update_one({'uid': uid, 'status': 0},
+                          {'$set':
+                               {
+                                'status': 1,
+                                'start_date': datetime.now().strftime("%d.%m.%Y %X"),
+                                }
+                           })
 
 
 def add_ticket(data):
@@ -52,25 +59,32 @@ def update_ticket_if_available(uid, master_id):
         db.tickets.update_one({'id': uid}, {'$set':
                                                 {'master': get_master_name_by_id(master_id),
                                                  'accept_date': datetime.now().strftime("%d.%m.%Y %X"),
-                                                 'status': 1,}}, upsert=True)
+                                                 'status': 3}}, upsert=True)
+
         return db.tickets.find_one({'id': uid})
     return False
 
 
-def decline(uid):
+def decline(uid, master_name):
     if db.tickets.count_documents({'id': uid}) > 0:
+        den_index = db.tickets.find_one({'id': uid})['den_index']
         db.tickets.update_one({'id': uid}, {'$set': {'master': '-', 'accept_date': '-',
-                                                     'status': 0,}}, upsert=True)
+                                                     'status': 0, f'denied_{den_index % 3}': master_name
+                                                     }}, upsert=True)
+        db.tickets.update_one({'id': uid}, {'$inc': {'den_index': 1}})
         return db.tickets.find_one({'id': uid})
     return False
 
 
-def confirm(uid, price=0):
+def confirm(uid, data):
     if db.tickets.count_documents({'id': uid}) > 0:
         db.tickets.update_one({'id': uid},
                               {'$set': {'status': 2,
                                         'confirm_date': datetime.now().strftime("%d.%m.%Y %X"),
-                                        'final_price': price}},
+                                        'final_price': data['final_price'],
+                                        'final_work': data['final_work'],
+                                        'is_client_happy': data['is_client_happy'],
+                                        }},
                               upsert=True)
 
         return db.tickets.find_one({'id': uid})
@@ -94,7 +108,7 @@ def get_tickets(id=None):
             data.append(i)
     else:
         data=[]
-        for i in db.tickets.find({'master': get_master_name_by_id(id), 'status': 1}):
+        for i in db.tickets.find({'master': get_master_name_by_id(id), 'status': {"$in":[1, 3]}}):
             data.append(i)
     return data
 
@@ -127,7 +141,12 @@ def get_master_by_uid(uid):
 
 def update_ticket(tid, status):
     db.tickets.update_one({'id': tid},
-                          {'$set': {'status': 0, 'confirm_date': '-',
+                          {'$set': {'status': 0,
+                                    'confirm_date': '-',
                                     'master': '-',
                                     'accept_date': '-',
                                     'final_price': '-'}})
+
+
+def update_ticket_status(tid, new_status):
+    db.tickets.update_one({'id': tid}, {'$set': {'status': new_status}})

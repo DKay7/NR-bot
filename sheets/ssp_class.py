@@ -25,19 +25,19 @@ class Spreadsheets:
         # Status code - Str
         self.status_to_str = {
             0: "Поиск",
-            1: "Назначен мастер",
+            1: "В работе",
             2: "Выполнен",
-            3: "Не договорились",
-            4: "Висяк",
+            3: "Мастер договаривается с клиентом",
+            4: "Не договорились",
             5: "Архив"
         }
 
         # Status code - Color (R, G, B)
         self.status_to_color = {
-            0: (0, 0, 0),
+            0: (204, 0, 0),
             1: (51, 51, 255),
             2: (50, 205, 50),
-            3: (62, 69, 50),
+            3: (153, 0, 255),
             4: (255, 244, 79),
             5: (11, 218, 81),
         }
@@ -92,8 +92,8 @@ class Spreadsheets:
         target_range = f"A{target_row}:G{target_row}"
 
         # TODO make it the right way
-        # G - A = 6
-        new_data = [[''] * 7]
+        # L - A = 12
+        new_data = [[''] * 12]
         self.worksheet.update(target_range, new_data)
 
     def get_data(self, ticket=None, master=None, for_='ticket'):
@@ -122,6 +122,11 @@ class Spreadsheets:
                     str(ticket['master']),
                     str(master_uid),
                     str(status),
+                    str(ticket['final_work']),
+                    str(ticket['is_client_happy']),
+                    str(ticket['denied_0']),
+                    str(ticket['denied_1']),
+                    str(ticket['denied_2']),
                 ]
             ]
 
@@ -133,12 +138,14 @@ class Spreadsheets:
             data = [
                 [
                     str(master['id']),
+                    str(master['start_date']),
                     str(master['speciality']),
+                    str(master['additional_spec']),
                     str(master['name']),
                     str(master['phone']),
                     str(master['username']),
                     str(master['uid']),
-                    str(master['address'])
+                    str(master['address']),
                 ]
             ]
 
@@ -154,17 +161,18 @@ class Spreadsheets:
             target_row = len(self.worksheet.col_values(1)) + 1
 
         if for_ == 'tickets':
-            range_ = f"A{target_row}:O{target_row}"
+            range_ = f"A{target_row}:S" \
+                     f"{target_row}"
             return range_, target_row
 
         elif for_ == 'masters':
-            range_ = f"A{target_row}:G{target_row}"
+            range_ = f"A{target_row}:I{target_row}"
             return range_, target_row
 
     def format_tickets_worksheet(self, ticket, target_row, color=None):
 
         if color is None:
-            color = self.status_to_color[ticket['status']]
+            color = self.status_to_color.get(ticket['status'], (255, 255, 255))
 
             self.worksheet.format(f"N{target_row}",
                                   {"backgroundColor": {

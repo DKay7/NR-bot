@@ -8,13 +8,14 @@ from aiogram.types import ReplyKeyboardRemove
 
 from sheets.connect import sp
 from data.config import ADMIN_CHAT
-from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb, get_admin_kb, get_cancel_kb
+from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb, get_admin_kb, get_cancel_kb, \
+    to_main_menu_master_kb
 from keyboards.inline.inline_keyboards import get_solution_kb, get_ticket_kb, get_client_kb, get_master_ticket_kb, \
     get_ticket_master_kb
 from loader import dp
 from states.states import Master, Admin
 from utils.db_api.db_commands import is_registered_master, current_status, add_master, add_ticket, get_masters, update_ticket_if_available, \
-    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id
+    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id, get_master_by_uid, update_ticket_status
 
 
 async def is_admin(uid, bot):
@@ -32,8 +33,7 @@ async def mailing(text, bot, id):
         await bot.send_message(i['uid'], text, reply_markup=markup)
 
 
-@dp.message_handler(CommandStart(), chat_type=types.ChatType.PRIVATE, state='*')
-async def bot_start(message: types.Message, state: FSMContext):
+async def main_menu(message: types.Message, state: FSMContext):
     if not await is_admin(message.chat.id, message.bot):
         if not is_registered_master(message.chat.id):
             await message.answer(f"Вы не являетесь мастером, но вы можете подать заявку",
@@ -46,6 +46,16 @@ async def bot_start(message: types.Message, state: FSMContext):
         await message.answer('Здравствуйте, вы в главном меню\nЗдесь вы можете создать новую заявку для мастеров',
                              reply_markup=get_admin_kb())
         await Admin.default.set()
+
+
+@dp.message_handler(CommandStart(), chat_type=types.ChatType.PRIVATE, state='*')
+async def bot_start(message: types.Message, state: FSMContext):
+    await main_menu(message, state)
+
+
+@dp.message_handler(Text(equals='Перейти в главное меню', ignore_case=True), chat_type=types.ChatType.PRIVATE, state='*')
+async def bot_start(message: types.Message, state: FSMContext):
+    await main_menu(message, state)
 
 
 @dp.message_handler(Text(equals='Отменить', ignore_case=True), chat_type=types.ChatType.PRIVATE, state='*')
@@ -73,6 +83,13 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_speciality)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(speciality=message.text)
+    await message.answer('Введите дополнительные специализации')
+    await Master.get_additional_spec.set()
+
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_additional_spec)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(additional_spec=message.text)
     await message.answer('Введите адрес проживания (метро)')
     await Master.get_address.set()
 
@@ -96,6 +113,7 @@ async def bot_start(message: types.Message, state: FSMContext):
            f"<a href='tg://user?id={message.chat.id}'>" \
            f"{data['name']}</a>\n" \
            f"Специализация: {data['speciality']}\n" \
+           f"Доп. специализация: {data['additional_spec']}\n" \
            f"Адрес проживания: {data['address']}\n" \
            f"Контактный телефон: {data['phone']}"
 
@@ -106,50 +124,65 @@ async def bot_start(message: types.Message, state: FSMContext):
 
 @dp.message_handler(Text(equals='Мои заявки'), chat_type=types.ChatType.PRIVATE, state=Master.master)
 async def bot_start(message: types.Message, state: FSMContext):
-    tickets = get_tickets(message.chat.id)
-    for data in tickets:
-        text = f"Заявка {data['id']}\n\n" \
-               f"Адрес: {data['address']}\n" \
-               f"Категория: {data['category']}\n" \
-               f"Дата выполнения: {data['date']}\n" \
-               f"Стоимость: {data['price']}\n" \
-               f"Номер клиента: {data['number']}\n" \
-               f"Имя: {data['name']}\n" \
-               f"Описание:\n" \
-               f"{data['desc']}"
 
-        await state.update_data(price=data['price'])
-        await message.answer(text, reply_markup=get_master_ticket_kb(data['id']))
+    tickets = get_tickets(message.chat.id)
+    if not tickets:
+        await message.answer("На данный момент у вас нет открытых заявок.")
+
+    else:
+        for data in tickets:
+            if int(data['status']) == 3:
+                await message.answer(
+                    f'Вам необходимо связаться с клиентом и договориться обо всём\n\n'
+                    f'Номер клиента: {data["number"]}\nИмя: {data["name"]}',
+                    reply_markup=get_client_kb(data['id']))
+            else:
+                text = f"Заявка {data['id']}\n\n" \
+                       f"Адрес: {data['address']}\n" \
+                       f"Категория: {data['category']}\n" \
+                       f"Дата выполнения: {data['date']}\n" \
+                       f"Стоимость: {data['price']}\n" \
+                       f"Номер клиента: {data['number']}\n" \
+                       f"Имя: {data['name']}\n" \
+                       f"Описание:\n" \
+                       f"{data['desc']}"
+
+                await state.update_data(price=data['price'])
+                await message.answer(text, reply_markup=get_master_ticket_kb(data['id']))
 
 
 @dp.message_handler(Text(equals='Актуальные заявки'), chat_type=types.ChatType.PRIVATE, state=Master.master)
 async def bot_start(message: types.Message, state: FSMContext):
     tickets = get_actual_tickets()
-    for data in tickets:
-        text = f"Заявка {data['id']}\n\n" \
-               f"Адрес: {data['address']}\n" \
-               f"Категория: {data['category']}\n" \
-               f"Дата выполнения: {data['date']}\n" \
-               f"Стоимость: {data['price']}\n" \
-               f"Номер клиента: {data['number']}\n" \
-               f"Имя: {data['name']}\n" \
-               f"Описание:\n" \
-               f"{data['desc']}"
 
-        await message.answer(text, reply_markup=get_ticket_master_kb(data['id']))
+    if not tickets:
+        await message.answer("На данный момент нет открытых заявок.")
+
+    else:
+        for data in tickets:
+            text = f"Заявка {data['id']}\n\n" \
+                   f"Адрес: {data['address']}\n" \
+                   f"Категория: {data['category']}\n" \
+                   f"Дата выполнения: {data['date']}\n" \
+                   f"Стоимость: {data['price']}\n" \
+                   f"Номер клиента: {data['number']}\n" \
+                   f"Имя: {data['name']}\n" \
+                   f"Описание:\n" \
+                   f"{data['desc']}"
+
+            await message.answer(text, reply_markup=get_ticket_master_kb(data['id']))
 
 
 @dp.callback_query_handler(Text(startswith='cancel_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup('')
-    data = await state.get_data()
     id = int(call.data.split('_')[1])
+    await state.update_data(id=id)
     await call.message.answer(f'Укажите причину отмены заявки')
     await Master.get_reason2.set()
 
-    decline(id)
+    decline(id, get_master_name_by_id(call.message.chat.id))
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_reason2)
 async def bot_start(message: types.Message, state: FSMContext):
@@ -185,7 +218,6 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
 
-
 @dp.callback_query_handler(Text(startswith='ticket_dc_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.delete()
@@ -196,12 +228,12 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup('')
     id = int(call.data.split('_')[1])
     await state.update_data(id=id)
-    decline(id)
+
+    decline(id, get_master_name_by_id(call.message.chat.id))
     await call.message.answer('Укажите причину по которой не получилось договориться')
     await Master.get_reason.set()
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
 
 @dp.callback_query_handler(Text(startswith='good_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
@@ -226,6 +258,8 @@ async def bot_start(message: types.Message, state: FSMContext):
                          'После выполнения работы не забудьте отметить заказ '
                          'выполненным', reply_markup=get_master_kb())
 
+    update_ticket_status(data['id'], 1)
+    sp.update_table(ticket=get_ticket_by_id(data['id']), table='tickets')
     await Master.master.set()
 
 
@@ -245,27 +279,42 @@ async def bot_start(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(Text(startswith='confirm_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
+    await state.update_data(id=int(call.data.split('_')[1]))
     await call.message.edit_reply_markup('')
-    await call.message.answer(f'Введите сумму, которую вы получили за заказ')
+    await call.message.answer(f'Введите сумму, которую вы получили за заказ', reply_markup=ReplyKeyboardRemove())
     await Master.get_final_price.set()
-
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_final_price)
 async def bot_start(message: types.Message, state: FSMContext):
-    data = await state.update_data(final_price=message.text)
+    await state.update_data(final_price=message.text)
+    await message.answer(f'Какая работа была проделана?')
+    await Master.get_final_work.set()
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_final_work)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(final_work=message.text)
+    await message.answer(f'Клиент доволен?')
+    await Master.is_client_happy.set()
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.is_client_happy)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(is_client_happy=message.text)
     data = await state.get_data()
+
     id_ = data['id']
 
-    confirm(id_, price=data['final_price'])
+    confirm(id_, data)
 
-    await message.answer(f'Заявка {id_} закрыта! Спасибо за сотрудничество!!!')
+    await message.answer(f'Заявка {id_} закрыта! Спасибо за сотрудничество!', reply_markup=to_main_menu_master_kb())
     await message.bot.send_message(ADMIN_CHAT, f"Заявка {id_} закрыта мастером "
                                                f"<a href='tg://user?id={message.chat.id}'>"
                                                f"{get_master_name_by_id(message.chat.id)}</a>\n"
                                                f"Изначальная сумма: {data['price']}\n"
-                                               f"Итоговая сумма: {data['final_price']}")
+                                               f"Итоговая сумма: {data['final_price']}\n"
+                                               f"Проделанная работа: {data['final_work']}\n"
+                                               f"Клиент доволен: {data['is_client_happy']}")
 
-    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
+    sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
     await Master.master.set()
 
 

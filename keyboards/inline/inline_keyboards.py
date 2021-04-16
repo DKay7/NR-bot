@@ -28,10 +28,10 @@ def get_client_kb(ticket_id):
     return markup
 
 
-def get_master_ticket_kb(uid):
+def get_master_ticket_kb(ticket_id):
     markup=InlineKeyboardMarkup(row_width=2)
-    markup.insert(InlineKeyboardButton('Отменить', callback_data=f'cancel_{uid}'))
-    markup.insert(InlineKeyboardButton('Выполнен', callback_data=f'confirm_{uid}'))
+    markup.insert(InlineKeyboardButton('Отменить', callback_data=f'cancel_{ticket_id}'))
+    markup.insert(InlineKeyboardButton('Выполнен', callback_data=f'confirm_{ticket_id}'))
     return markup
 
 
