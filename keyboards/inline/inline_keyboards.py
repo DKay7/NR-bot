@@ -35,5 +35,8 @@ def get_master_ticket_kb(ticket_id):
     return markup
 
 
-
+def get_ticket_admin_cancel(tic_id):
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.insert(InlineKeyboardButton('Архивировать заявку', callback_data=f'ticket_archive_{tic_id}'))
+    return markup
 

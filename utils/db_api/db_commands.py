@@ -124,9 +124,9 @@ def delete_master(uid):
     db.masters.delete_one({'uid': uid})
 
 
-def archive(uid):
-    if db.tickets.count_documents({'id': uid}) > 0:
-        db.tickets.update_one({'id': uid}, {'$set': {'status': 5}}, upsert=True)
+def archive(tic_id):
+    if db.tickets.count_documents({'id': tic_id}) > 0:
+        db.tickets.update_one({'id': tic_id}, {'$set': {'status': 5}}, upsert=True)
         return True
     return False
 
@@ -150,3 +150,7 @@ def update_ticket(tid, status):
 
 def update_ticket_status(tid, new_status):
     db.tickets.update_one({'id': tid}, {'$set': {'status': new_status}})
+
+
+def delete_ticket(tic_id):
+    db.tickets.delete_one({'id': tic_id}) 

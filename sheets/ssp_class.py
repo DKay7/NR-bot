@@ -3,7 +3,6 @@ import gspread
 from utils.db_api.db import db
 from utils.db_api.db_commands import get_master_by_name
 
-
 logger = logging.getLogger('ssp_logger')
 logger.setLevel(logging.DEBUG)
 
@@ -89,12 +88,7 @@ class Spreadsheets:
 
         mid = master['id']
         target_row = self.worksheet.find(query=str(mid), in_column=1).row
-        target_range = f"A{target_row}:G{target_row}"
-
-        # TODO make it the right way
-        # L - A = 12
-        new_data = [[''] * 12]
-        self.worksheet.update(target_range, new_data)
+        self.worksheet.delete_row(target_row)
 
     def get_data(self, ticket=None, master=None, for_='ticket'):
 
@@ -188,3 +182,6 @@ class Spreadsheets:
                                       "green": color[1] / 255,
                                       "blue": color[2] / 255
                                   }})
+
+
+    
