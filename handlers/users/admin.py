@@ -83,17 +83,16 @@ async def bot_start(message: types.Message, state: FSMContext):
                          reply_markup=get_admin_kb())
     await Admin.default.set()
 
+    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
     await mailing(text, message.bot, id)
 
-    sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
-@dp.message_handler(Text(equals='Закрыть заявку'), chat_type=types.ChatType.PRIVATE, state= Admin.default)
+@dp.message_handler(Text(equals='Архивировать заявку'), chat_type=types.ChatType.PRIVATE, state=Admin.default)
 async def bot_start(message: types.Message, state: FSMContext):
     tickets = get_actual_tickets()
 
 
     if not tickets:
-        await message.answer("На данный момент нет открытых заявок.")
+        await message.answer("На данный момент нет открытых заявок с неназначенным мастером.")
 
     else:
         for data in tickets:
@@ -116,3 +115,4 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     archive(id_)
     sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
     await call.message.answer(f'Заявка отправлена в архив')
+

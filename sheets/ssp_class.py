@@ -1,5 +1,7 @@
 import logging
 import gspread
+import gspread_formatting as gsf
+from time import sleep
 from utils.db_api.db import db
 from utils.db_api.db_commands import get_master_by_name
 
@@ -38,17 +40,51 @@ class Spreadsheets:
             2: (50, 205, 50),
             3: (153, 0, 255),
             4: (255, 244, 79),
-            5: (11, 218, 81),
+            5: (108, 108, 108),
         }
 
         logger.info('SSP UPDATE STARTED')
         
         # Update all ssp when bot is starting
-        for ticket in db.tickets.find():
-            self.update_table(ticket=ticket, table='tickets')
+        tickets = list(db.tickets.find())
+        masters = list(db.masters.find({'status': 1}))
 
-        for master in db.masters.find({'status': 1}):
-            self.update_table(master=master, table='masters')
+        ticket_values = self.sheet.get_worksheet(0).range(f"A1:S{len(tickets)+1}")
+        ticket_colors = list()
+        masters_values = self.sheet.get_worksheet(1).range(f"A1:I{len(masters)+1}")
+
+        # TODO make function
+        cell = 0
+        for ticket in tickets:
+            new_data = self.get_data(ticket=ticket)[0]
+
+            for data in new_data:
+                ticket_values[cell].value = data
+                cell += 1
+
+                if ticket_values[cell].address.startswith("N"):
+                    color = self.status_to_color.get(ticket['status'], (255, 255, 255))
+
+                    format = gsf.cellFormat(
+                        backgroundColor=gsf.color(color[0]/255, color[1]/255, color[2]/255)
+                    )
+                    ticket_colors.append((f"N{ticket_values[cell].row}", format))
+
+        # TODO make function 
+        cell = 0
+        for master in masters:
+            new_data = self.get_data(master=master, for_='master')[0]
+            for data in new_data:
+                masters_values[cell].value = data
+                cell += 1
+        
+        self.worksheet = self.sheet.get_worksheet(0)
+        self.worksheet.update_cells(ticket_values)
+        gsf.format_cell_ranges(self.worksheet, ticket_colors)
+
+        self.worksheet = self.sheet.get_worksheet(1)
+        self.worksheet.update_cells(masters_values)
+
 
         logger.info('SSP UPDATE ENDED')
 
