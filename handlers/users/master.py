@@ -15,7 +15,8 @@ from keyboards.inline.inline_keyboards import get_solution_kb, get_ticket_kb, ge
 from loader import dp
 from states.states import Master, Admin
 from utils.db_api.db_commands import is_registered_master, current_status, add_master, add_ticket, get_masters, update_ticket_if_available, \
-    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id, get_master_by_uid, update_ticket_status
+    get_master_name_by_id, decline, get_tickets, confirm, get_actual_tickets, get_ticket_by_id, get_master_by_uid, update_ticket_status, \
+        resting_master, coming_back_master  
 
 
 async def is_admin(uid, bot):
@@ -316,8 +317,27 @@ async def bot_start(message: types.Message, state: FSMContext):
     sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
     await Master.master.set()
 
+@dp.message_handler(Text(startswith=f'Отдохнуть'), chat_type=types.ChatType.PRIVATE, state=Master.master)
+async def resting_func(message: types.Message, state: FSMContext):
+    id_ = message.chat.id
+    result = resting_master(id_)
 
+    if result:
+        sp.update_table(master=get_master_by_uid(id_), table='masters')
+        await message.answer(f'Вы отдыхаете. Вам пока не будут приходить заявки')
+    else:
+        await message.answer(f'Не нашли вас в базе, возможно вы уже отдыхаете, либо возникли какие-то проблемы.')
 
+@dp.message_handler(Text(startswith=f'Вернуться в строй'), chat_type=types.ChatType.PRIVATE, state=Master.master)
+async def coming_back_func(message: types.Message, state: FSMContext):
+    id_ = message.chat.id
+    result = coming_back_master(id_)
+
+    if result:
+        sp.update_table(master=get_master_by_uid(id_), table='masters')
+        await message.answer(f'Вы вернулись в строй. Теперь вам будут приходить заявки')
+    else:
+        await message.answer(f'Не нашли вас в базе, возможно вы уже в строю, либо возникли какие-то проблемы.')
 
 
 
