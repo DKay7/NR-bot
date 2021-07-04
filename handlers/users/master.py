@@ -317,7 +317,7 @@ async def bot_start(message: types.Message, state: FSMContext):
     sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
     await Master.master.set()
 
-@dp.message_handler(Text(startswith=f'Отдохнуть'), chat_type=types.ChatType.PRIVATE, state=Master.master)
+@dp.message_handler(Text(startswith=f'ОТДЫХ'), chat_type=types.ChatType.PRIVATE, state=Master.master)
 async def resting_func(message: types.Message, state: FSMContext):
     id_ = message.chat.id
     result = resting_master(id_)
@@ -328,7 +328,7 @@ async def resting_func(message: types.Message, state: FSMContext):
     else:
         await message.answer(f'Не нашли вас в базе, возможно вы уже отдыхаете, либо возникли какие-то проблемы.')
 
-@dp.message_handler(Text(startswith=f'Вернуться в строй'), chat_type=types.ChatType.PRIVATE, state=Master.master)
+@dp.message_handler(Text(startswith='В БОЙ'), chat_type=types.ChatType.PRIVATE, state=Master.master)
 async def coming_back_func(message: types.Message, state: FSMContext):
     id_ = message.chat.id
     result = coming_back_master(id_)

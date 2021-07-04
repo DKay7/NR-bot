@@ -9,7 +9,8 @@ from keyboards.default.reply_keyboards import get_cancel_kb, get_admin_kb
 from loader import dp
 from sheets.connect import sp
 from states.states import Admin
-from utils.db_api.db_commands import get_ticket_by_id, add_ticket, get_actual_tickets, archive, get_all_masters, master_to_delete, get_master_by_uid
+from utils.db_api.db_commands import get_ticket_by_id, add_ticket, get_actual_tickets, archive, get_all_masters
+from utils.db_api.db_commands import set_master_status_deleted, get_master_by_uid
 from keyboards.inline.inline_keyboards import get_ticket_admin_cancel, get_master_admin_cancel
 
 
@@ -86,7 +87,7 @@ async def bot_start(message: types.Message, state: FSMContext):
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
     await mailing(text, message.bot, id)
 
-@dp.message_handler(Text(equals='Архивировать заявку'), chat_type=types.ChatType.PRIVATE, state=Admin.default)
+@dp.message_handler(Text(equals='АРХИВ'), chat_type=types.ChatType.PRIVATE, state=Admin.default)
 async def bot_start(message: types.Message, state: FSMContext):
     tickets = get_actual_tickets()
 
@@ -116,8 +117,8 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
     sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
     await call.message.answer(f'Заявка отправлена в архив')
 
-@dp.message_handler(Text(equals='Мастер на удаление'), chat_type=types.ChatType.PRIVATE, state=Admin.default)
-async def master_to_delete(message: types.Message, state: FSMContext):
+@dp.message_handler(Text(equals='Мастера на удаление'), chat_type=types.ChatType.PRIVATE, state=Admin.default)
+async def get_masters_list_to_delete(message: types.Message, state: FSMContext):
     masters = get_all_masters()
 
     if not masters:
@@ -127,17 +128,14 @@ async def master_to_delete(message: types.Message, state: FSMContext):
         for data in masters:
             text = f"<a href='tg://user?id={message.chat.id}'>" \
                    f"{data['name']}</a>\n" \
-                   f"Специализация: {data['speciality']}\n" \
-                   f"Доп. специализация: {data['additional_spec']}\n" \
-                   f"Адрес проживания: {data['address']}\n" \
                    f"Контактный телефон: {data['phone']}" 
 
-            await message.answer(text, reply_markup=get_master_admin_cancel(data['id'])) 
+            await message.answer(text, reply_markup=get_master_admin_cancel(data['uid'])) 
 
 @dp.callback_query_handler(Text(startswith=f'master_delete_'), chat_type=types.ChatType.PRIVATE, state='*')
-async def master_delete(call: types.CallbackQuery, state: FSMContext):
+async def delete_chosen_master(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup('')
     id_ = int(call.data.split('_')[2])
-    master_to_delete(id_)
+    set_master_status_deleted(id_)
     sp.update_table(master=get_master_by_uid(id_), table='masters')
     await call.message.answer(f'Мастеру присвоена категория на удаление')
