@@ -82,9 +82,7 @@ async def bot_start(message: types.Message, state: FSMContext):
                          reply_markup=get_admin_kb())
     await Admin.default.set()
 
-    await mailing(text, message.bot, id)
-
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
-
+    await mailing(text, message.bot, id)
 
 

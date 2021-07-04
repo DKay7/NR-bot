@@ -1,15 +1,19 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.builtin import CommandStart, Text
 from aiogram.types import ReplyKeyboardRemove
 
+from keyboards.inline.inline_keyboards import get_ticket_admin_cancel, get_master_admin_cancel
 from sheets.connect import sp
 from handlers.users.master import mailing
 from keyboards.default.reply_keyboards import get_not_master_kb, get_master_kb, to_main_menu_master_kb
 from loader import dp
-from states.states import Master
-from utils.db_api.db_commands import is_registered_master, approve_master, current_status, set_status, delete_master, archive, \
-    get_masters, get_ticket_by_id, update_ticket, get_master_by_uid
+from states.states import Master, Admin
+from utils.db_api.db_commands import is_registered_master, approve_master, current_status, set_status, delete_master, \
+    archive, \
+    get_masters, get_ticket_by_id, update_ticket, get_master_by_uid, get_actual_tickets, get_all_masters, \
+    set_master_status_deleted
 
 
 @dp.callback_query_handler(Text(startswith='accept'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP],
@@ -67,17 +71,6 @@ async def asd(message: types.Message):
     sp.delete_master(master)
 
 
-@dp.message_handler(Text(startswith='АРХИВ'),
-                    chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
-async def asd(message: types.Message):
-    uid = int(message.text.split(' ')[2])
-
-    if archive(uid):
-        await message.answer(f'Заявка {uid} помещена в архив')
-
-    sp.update_table(ticket=get_ticket_by_id(uid), table='tickets')
-
-
 @dp.message_handler(Text(startswith='МАСТЕРАМ'),
                     chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
@@ -126,3 +119,62 @@ async def mailing_text(text, bot):
     list = get_masters()
     for i in list:
         await bot.send_message(i['uid'], text)
+
+
+@dp.message_handler(Text(equals='АРХИВ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state="*")
+async def archive_ticket(message: types.Message, state: FSMContext):
+    tickets = get_actual_tickets()
+
+
+    if not tickets:
+        await message.answer("На данный момент нет открытых заявок с неназначенным мастером.")
+
+    else:
+        for data in tickets:
+            text = f"Заявка {data['id']}\n\n" \
+                   f"Адрес: {data['address']}\n" \
+                   f"Категория: {data['category']}\n" \
+                   f"Дата выполнения: {data['date']}\n" \
+                   f"Стоимость: {data['price']}\n" \
+                   f"Имя: {data['name']}\n" \
+                   f"Описание:\n" \
+                   f"{data['desc']}"
+
+            await message.answer(text, reply_markup=get_ticket_admin_cancel(data['id']))
+
+
+@dp.callback_query_handler(Text(startswith=f'ticket_archive_'), chat_type=[types.ChatType.GROUP,
+                                                                           types.ChatType.SUPERGROUP], state='*')
+async def archive_ticket_button(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup('')
+    id_ = int(call.data.split('_')[2])
+    archive(id_)
+    sp.update_table(ticket=get_ticket_by_id(id_), table='tickets')
+    await call.message.answer(f'Заявка отправлена в архив')
+
+
+@dp.message_handler(Text(equals='СПИСОК'), chat_type=[types.ChatType.GROUP,
+                                                      types.ChatType.SUPERGROUP], state="*")
+async def get_masters_list_to_delete(message: types.Message, state: FSMContext):
+    masters = get_all_masters()
+
+    if not masters:
+        await message.answer("На данный момент нет мастеров")
+
+    else:
+        for data in masters:
+            text = f"<a href='tg://user?id={message.chat.id}'>" \
+                   f"{data['name']}</a>\n" \
+                   f"Контактный телефон: {data['phone']}"
+
+            await message.answer(text, reply_markup=get_master_admin_cancel(data['uid']))
+
+
+@dp.callback_query_handler(Text(startswith=f'master_delete_'), chat_type=[types.ChatType.GROUP,
+                                                                          types.ChatType.SUPERGROUP], state='*')
+async def delete_chosen_master(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup('')
+    id_ = int(call.data.split('_')[2])
+    set_master_status_deleted(id_)
+    sp.update_table(master=get_master_by_uid(id_), table='masters')
+    await call.message.answer(f'Мастеру присвоена категория на удаление')

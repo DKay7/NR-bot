@@ -3,7 +3,10 @@ from utils.db_api.db import db
 
 
 def is_registered_master(uid):
-    if db.masters.count_documents({'uid': uid, 'status': 1}) > 0:
+    if db.masters.count_documents({'uid': uid, '$or': [
+                                                        {"status": 1},
+                                                        {"status": 2}
+                                                    ]}) > 0:
         return True
     return False
 
@@ -44,7 +47,6 @@ def approve_master(uid):
                                 'start_date': datetime.now().strftime("%d.%m.%Y %X"),
                                 }
                            })
-
 
 def add_ticket(data):
     id = db.tickets.count_documents({}) + 1
@@ -124,9 +126,9 @@ def delete_master(uid):
     db.masters.delete_one({'uid': uid})
 
 
-def archive(uid):
-    if db.tickets.count_documents({'id': uid}) > 0:
-        db.tickets.update_one({'id': uid}, {'$set': {'status': 5}}, upsert=True)
+def archive(tic_id):
+    if db.tickets.count_documents({'id': tic_id}) > 0:
+        db.tickets.update_one({'id': tic_id}, {'$set': {'status': 5}}, upsert=True)
         return True
     return False
 
@@ -150,3 +152,31 @@ def update_ticket(tid, status):
 
 def update_ticket_status(tid, new_status):
     db.tickets.update_one({'id': tid}, {'$set': {'status': new_status}})
+
+
+def delete_ticket(tic_id):
+    db.tickets.delete_one({'id': tic_id}) 
+
+def resting_master(master_id):
+    if db.masters.count_documents({'uid': master_id, 'status': 1}) > 0:
+        db.masters.update_one({'uid': master_id}, {'$set': {'status': 2}}, upsert=True)
+        return True
+    return False
+
+def coming_back_master(master_id):
+    if db.masters.count_documents({'uid': master_id, 'status': 2}) > 0:
+        db.masters.update_one({'uid': master_id}, {'$set': {'status': 1}}, upsert=True)
+        return True
+    return False 
+
+def get_all_masters():
+    data = []
+    for i in db.masters.find({'$or':[{'status': 1 }, {'status': 2}]}):
+        data.append(i)
+    return data
+
+def set_master_status_deleted(mas_id):
+    if db.masters.count_documents({'uid': mas_id, '$or':[{'status': 1 }, {'status': 2}]}) > 0:
+        db.masters.update_one({'uid': mas_id}, {'$set': {'status': 3}})
+        return True
+    return False
