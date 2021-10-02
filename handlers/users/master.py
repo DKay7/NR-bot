@@ -77,7 +77,7 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_name)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer('Введите свою специализацию')
+    await message.answer('Введите свою специализацию (направление работы)')
     await Master.get_speciality.set()
 
 
@@ -91,13 +91,27 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_additional_spec)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(additional_spec=message.text)
-    await message.answer('Введите адрес проживания (метро)')
+    await message.answer('Введите ближайшую к вам станцию метро')
     await Master.get_address.set()
 
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_address)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(address=message.text)
+    await message.answer('Работаете ли вы по ночам? Отправьте "да" или "нет".')
+    await Master.get_working_on_night.set()
+
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_working_on_night)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(is_working_on_night=message.text.lower())
+    await message.answer('Есть ли у вас личный автомобиль? Отправьте "да" или "нет".')
+    await Master.get_has_car.set()
+
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_has_car)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(has_car=message.text.lower())
     await message.answer('Введите контактный телефон')
     await Master.get_phone.set()
 
@@ -116,7 +130,9 @@ async def bot_start(message: types.Message, state: FSMContext):
            f"Специализация: {data['speciality']}\n" \
            f"Доп. специализация: {data['additional_spec']}\n" \
            f"Адрес проживания: {data['address']}\n" \
-           f"Контактный телефон: {data['phone']}"
+           f"Контактный телефон: {data['phone']}"\
+           f"Работает по ночам: {data.get('is_working_on_night') or '-'}"\
+           f"Наличие автомобиля: {data.get('has_car') or '-'}"
 
     await message.bot.send_message(ADMIN_CHAT, text, reply_markup=get_solution_kb(message.chat.id))
     add_master(message.chat.id, data)
@@ -218,6 +234,7 @@ async def bot_start(call: types.CallbackQuery, state: FSMContext):
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
 
+
 @dp.callback_query_handler(Text(startswith='ticket_dc_'), chat_type=types.ChatType.PRIVATE, state='*')
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await call.message.delete()
@@ -281,7 +298,7 @@ async def bot_start(message: types.Message, state: FSMContext):
 async def bot_start(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(id=int(call.data.split('_')[1]))
     await call.message.edit_reply_markup('')
-    await call.message.answer(f'Введите сумму, которую вы получили за заказ', reply_markup=ReplyKeyboardRemove())
+    await call.message.answer(f'Сколько вы получили за заказ? Отправьте число в рублях.', reply_markup=ReplyKeyboardRemove())
     await Master.get_final_price.set()
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_final_price)
@@ -293,7 +310,7 @@ async def bot_start(message: types.Message, state: FSMContext):
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.get_final_work)
 async def bot_start(message: types.Message, state: FSMContext):
     await state.update_data(final_work=message.text)
-    await message.answer(f'Клиент доволен?')
+    await message.answer(f'Клиент доволен? Отправьте "да" или "нет"')
     await Master.is_client_happy.set()
 
 @dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Master.is_client_happy)

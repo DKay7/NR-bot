@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -13,7 +15,7 @@ from states.states import Master, Admin
 from utils.db_api.db_commands import is_registered_master, approve_master, current_status, set_status, delete_master, \
     archive, \
     get_masters, get_ticket_by_id, update_ticket, get_master_by_uid, get_actual_tickets, get_all_masters, \
-    set_master_status_deleted
+    set_master_status_deleted, confirm, decline
 
 
 @dp.callback_query_handler(Text(startswith='accept'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP],
@@ -51,10 +53,10 @@ async def bot_start(message: types.Message, state: FSMContext):
         await message.answer('Прием мастеров открыт')
 
 
-@dp.message_handler(Text(startswith='УДАЛИТЬ МАСТЕРА'),
+@dp.message_handler(Text(startswith='УДАЛИТЬ'),
                     chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
-    master_uid = int(message.text.split(' ')[2])
+    master_uid = int(message.text.split(' ')[1])
     master = get_master_by_uid(master_uid)
 
     if master is None:
@@ -68,10 +70,8 @@ async def asd(message: types.Message):
     except:
         pass
 
-    sp.delete_master(master)
 
-
-@dp.message_handler(Text(startswith='МАСТЕРАМ'),
+@dp.message_handler(Text(startswith='РАССЫЛКА'),
                     chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     text = message.text.replace('МАСТЕРАМ', '')
@@ -79,7 +79,7 @@ async def asd(message: types.Message):
     await message.answer('Рассылка успешно выполнена')
 
 
-@dp.message_handler(Text(startswith='РАССЫЛКА'),
+@dp.message_handler(Text(startswith='РАССЫЛКА_ЗАЯВКИ'),
                     chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state='*')
 async def asd(message: types.Message):
     uid = int(message.text.split(' ')[1])
@@ -125,7 +125,6 @@ async def mailing_text(text, bot):
 async def archive_ticket(message: types.Message, state: FSMContext):
     tickets = get_actual_tickets()
 
-
     if not tickets:
         await message.answer("На данный момент нет открытых заявок с неназначенным мастером.")
 
@@ -141,6 +140,31 @@ async def archive_ticket(message: types.Message, state: FSMContext):
                    f"{data['desc']}"
 
             await message.answer(text, reply_markup=get_ticket_admin_cancel(data['id']))
+
+
+@dp.message_handler(Text(equals='ЗАКРТЫТЬ'), chat_type=[types.ChatType.GROUP, types.ChatType.SUPERGROUP], state="*")
+async def archive_ticket(message: types.Message, state: FSMContext):
+    ticket_status = int(message.text.split(' ')[1])
+    ticket_id = int(message.text.split(' ')[2])
+
+    if ticket_status == 1:
+        data = {
+            'final_price': '-',
+            'final_work': '-',
+            'is_client_happy': '-'
+        }
+        confirm(ticket_id, data)
+        await message.answer(f'Заявка завершена успешно')
+
+    elif ticket_id == 2:
+        decline(ticket_id, '-')
+        await message.answer(f'Заявка отменена')
+
+    elif ticket_id == 3:
+        archive(ticket_id)
+        await message.answer(f'Заявка отправлена в архив')
+
+    sp.update_table(ticket=get_ticket_by_id(ticket_id), table='tickets')
 
 
 @dp.callback_query_handler(Text(startswith=f'ticket_archive_'), chat_type=[types.ChatType.GROUP,

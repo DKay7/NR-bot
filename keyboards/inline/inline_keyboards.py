@@ -23,15 +23,15 @@ def get_ticket_master_kb(uid):
 
 def get_client_kb(ticket_id):
     markup = InlineKeyboardMarkup(resize_keyboard=True)
-    markup.insert(InlineKeyboardButton('Договорились', callback_data=f'good_{ticket_id}'))
-    markup.insert(InlineKeyboardButton('Не договорились', callback_data=f'bad_{ticket_id}'))
+    markup.insert(InlineKeyboardButton('Договорился', callback_data=f'good_{ticket_id}'))
+    markup.insert(InlineKeyboardButton('Не мое', callback_data=f'bad_{ticket_id}'))
     return markup
 
 
 def get_master_ticket_kb(ticket_id):
     markup=InlineKeyboardMarkup(row_width=2)
-    markup.insert(InlineKeyboardButton('Отменить', callback_data=f'cancel_{ticket_id}'))
-    markup.insert(InlineKeyboardButton('Выполнен', callback_data=f'confirm_{ticket_id}'))
+    markup.insert(InlineKeyboardButton('Не сделал', callback_data=f'cancel_{ticket_id}'))
+    markup.insert(InlineKeyboardButton('Выполнил', callback_data=f'confirm_{ticket_id}'))
     return markup
 
 

@@ -143,7 +143,6 @@ class Spreadsheets:
     def delete_master(self, master):
         assert master is not None
 
-
         mid = master['id']
         target_row = self.master_worksheet.find(query=str(mid), in_column=1).row
         self.master_worksheet.delete_row(target_row)

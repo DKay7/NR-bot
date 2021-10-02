@@ -8,6 +8,8 @@ class Master(StatesGroup):
     get_speciality = State()
     get_additional_spec = State()
     get_phone = State()
+    get_working_on_night = State()
+    get_has_car = State()
     get_address = State()
 
     get_reason = State()
@@ -20,6 +22,7 @@ class Master(StatesGroup):
 
 class Admin(StatesGroup):
     default = State()
+    get_priority = State()
     get_category = State()
     get_address = State()
     get_number = State()

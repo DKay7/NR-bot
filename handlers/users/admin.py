@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 
 from aiogram import types
@@ -9,12 +10,19 @@ from keyboards.default.reply_keyboards import get_cancel_kb, get_admin_kb
 from loader import dp
 from sheets.connect import sp
 from states.states import Admin
-from utils.db_api.db_commands import get_ticket_by_id, add_ticket
+from utils.db_api.db_commands import get_ticket_by_id, add_ticket, archive
 
 
 @dp.message_handler(Text(equals='Внести заявку'), chat_type=types.ChatType.PRIVATE, state=Admin.default)
 async def bot_start(message: types.Message, state: FSMContext):
-    await message.answer('Введите категорию услуг', reply_markup=get_cancel_kb())
+    await message.answer('Введите срочность заявки. 1 -- срочная, 2 -- не срочная', reply_markup=get_cancel_kb())
+    await Admin.get_priority.set()
+
+
+@dp.message_handler(chat_type=types.ChatType.PRIVATE, state=Admin.get_category)
+async def bot_start(message: types.Message, state: FSMContext):
+    await state.update_data(ticket_priority=message.text)
+    await message.answer('Введите категорию услуг')
     await Admin.get_category.set()
 
 
@@ -71,6 +79,7 @@ async def bot_start(message: types.Message, state: FSMContext):
     id = add_ticket(data)
 
     text = f"Заявка {id}\n"\
+           f"Приоритет: {data['ticket_priority']}"\
            f"Адрес: {data['address']}\n"\
            f"Категория: {data['category']}\n"\
            f"Дата выполнения: {data['date']}\n"\
@@ -84,5 +93,9 @@ async def bot_start(message: types.Message, state: FSMContext):
 
     sp.update_table(ticket=get_ticket_by_id(id), table='tickets')
     await mailing(text, message.bot, id)
+
+    await asyncio.sleep(2 * 24 * 60 * 60)
+    archive(id)
+
 
 
