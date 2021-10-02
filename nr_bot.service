@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram CRM bot
+After=network.target syslog.target mongodb.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/newremontbot
+ExecStart=/usr/bin/make run
+RestartSec=5
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
